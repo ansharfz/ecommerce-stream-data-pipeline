@@ -1,0 +1,120 @@
+services:
+  kafka-cluster-1:
+    image: confluentinc/cp-kafka:7.7.1
+    container_name: kafka-cluster-1
+    ports:
+      - '9092:9092'
+    networks:
+      - ecommerce-stream-network
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_CONTROLLER_LISTENER_NAMES: 'CONTROLLER'
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: 'CONTROLLER:PLAINTEXT, INTERNAL:PLAINTEXT, EXTERNAL:PLAINTEXT'
+      KAFKA_LISTENERS: 'INTERNAL://kafka-cluster-1:29092,CONTROLLER://kafka-cluster-1:29093,EXTERNAL://0.0.0.0:9092'
+      KAFKA_ADVERTISED_LISTENERS: 'INTERNAL://kafka-cluster-1:29092, EXTERNAL://localhost:9092'
+      KAFKA_INTER_BROKER_LISTENER_NAME: 'INTERNAL'
+      KAFKA_CONTROLLER_QUORUM_VOTERS: '1@kafka-cluster-1:29093, 2@kafka-cluster-2:29093, 3@kafka-cluster-3:29093'
+      KAFKA_PROCESS_ROLES: 'broker, controller'
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 3
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
+      KAFKA_LOG_DIRS: '/tmp/kraft-combined-logs'
+      CLUSTER_ID: 'yFDB9u4DhPfbLhYxPX12DQ=='
+
+  kafka-cluster-2:
+    image: confluentinc/cp-kafka:7.7.1
+    container_name: kafka-cluster-2
+    ports:
+      - '9093:9093'
+    
+    networks:
+      - ecommerce-stream-network
+    environment:
+      KAFKA_NODE_ID: 2
+      KAFKA_CONTROLLER_LISTENER_NAMES: 'CONTROLLER'
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: 'CONTROLLER:PLAINTEXT, INTERNAL:PLAINTEXT, EXTERNAL:PLAINTEXT'
+      KAFKA_LISTENERS: 'INTERNAL://kafka-cluster-2:29092,CONTROLLER://kafka-cluster-2:29093,EXTERNAL://0.0.0.0:9093'
+      KAFKA_ADVERTISED_LISTENERS: 'INTERNAL://kafka-cluster-2:29092, EXTERNAL://localhost:9093'
+      KAFKA_INTER_BROKER_LISTENER_NAME: 'INTERNAL'
+      KAFKA_CONTROLLER_QUORUM_VOTERS: '1@kafka-cluster-1:29093, 2@kafka-cluster-2:29093, 3@kafka-cluster-3:29093'
+      KAFKA_PROCESS_ROLES: 'broker, controller'
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 3
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
+      KAFKA_LOG_DIRS: '/tmp/kraft-combined-logs'
+      CLUSTER_ID: 'yFDB9u4DhPfbLhYxPX12DQ=='
+
+  kafka-cluster-3:
+    image: confluentinc/cp-kafka:7.7.1
+    container_name: kafka-cluster-3
+    ports:
+      - '9094:9094'
+    networks:
+      - ecommerce-stream-network
+    environment:
+      KAFKA_NODE_ID: 3
+      KAFKA_CONTROLLER_LISTENER_NAMES: 'CONTROLLER'
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: 'CONTROLLER:PLAINTEXT, INTERNAL:PLAINTEXT, EXTERNAL:PLAINTEXT'
+      KAFKA_LISTENERS: 'INTERNAL://kafka-cluster-3:29092,CONTROLLER://kafka-cluster-3:29093,EXTERNAL://0.0.0.0:9094'
+      KAFKA_ADVERTISED_LISTENERS: 'INTERNAL://kafka-cluster-3:29092, EXTERNAL://localhost:9094'
+      KAFKA_INTER_BROKER_LISTENER_NAME: 'INTERNAL'
+      KAFKA_CONTROLLER_QUORUM_VOTERS: '1@kafka-cluster-1:29093, 2@kafka-cluster-2:29093, 3@kafka-cluster-3:29093'
+      KAFKA_PROCESS_ROLES: 'broker, controller'
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 3
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
+      KAFKA_LOG_DIRS: '/tmp/kraft-combined-logs'
+      CLUSTER_ID: 'yFDB9u4DhPfbLhYxPX12DQ=='
+  
+  schema-registry:
+    image: confluentinc/cp-schema-registry:7.7.1
+    container_name: schema-registry
+    depends_on:
+      - kafka-cluster-1
+      - kafka-cluster-2
+      - kafka-cluster-3
+    ports:
+      - '8881:8081'
+    networks:
+      - ecommerce-stream-network
+    environment:
+      SCHEMA_REGISTRY_HOST_NAME: 'schema-registry'
+      SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: 'kafka-cluster-1:29092,kafka-cluster-2:29092,kafka-cluster-3:29092'
+      SCHEMA_REGISTRY_LISTENERS: 'http://0.0.0.0:8081'
+
+  flink-jobmanager:
+    image: flink:1.20.0-java11
+    container_name: flink-jobmanager
+    ports:
+      - '8081:8081'
+    command: jobmanager
+    networks:
+      - ecommerce-stream-network
+    environment:
+      - |
+        FLINK_PROPERTIES=
+        jobmanager.rpc.address: jobmanager        
+
+  flink-taskmanager:
+    image: flink:1.20.0-java11
+    container_name: flink-taskmanager
+    depends_on:
+      - flink-jobmanager
+    networks:
+      - ecommerce-stream-network
+    command: taskmanager
+    scale: 1
+    environment:
+      - |
+        FLINK_PROPERTIES=
+        jobmanager.rpc.address: jobmanager
+        taskmanager.numberOfTaskSlots: 2
+
+
+networks:
+  ecommerce-stream-network:
+    name: ecommerce-stream-network
+    driver: bridge

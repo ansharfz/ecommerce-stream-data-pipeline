@@ -1,0 +1,15 @@
+{
+    "type": "record",
+    "name": "events",
+    "fields": [
+        {"name": "event_time" , "type": "long", "doc":"Time (UTC) when event happened in milisecond."},
+        {"name" : "event_type", "type": "string", "doc":"Event conducted by the user(view, cart, remove_from_cart, purchase)"},
+        {"name" : "product_id", "type": "string", "doc":"ID of a product"},
+        {"name" : "category_id", "type": "string", "doc":"Product's category ID" },
+        {"name" : "category_code", "type": "string", "doc":"Product's category code name if it was possible to make it. "},
+        {"name" : "brand", "type": "string", "doc":"Downcased string of brand name. Can be missed." },
+        {"name" : "price", "type": "float", "doc":"Float price of a product." },
+        {"name" : "user_id", "type": "string", "doc":"Permanent user ID." },
+        {"name" : "user_session", "type": "string", "doc":"Temporary user's session ID. Changed after long pause by the user" }
+    ]
+}
