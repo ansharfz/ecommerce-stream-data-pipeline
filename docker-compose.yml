@@ -86,33 +86,70 @@ services:
       SCHEMA_REGISTRY_LISTENERS: 'http://0.0.0.0:8081'
 
   flink-jobmanager:
-    image: flink:1.20.0-java11
+    image: flink:1.19.1-scala_2.12
     container_name: flink-jobmanager
     ports:
       - '8081:8081'
+      - '6123:6123'
     command: jobmanager
+    volumes:
+      - ./tmp/staging:/tmp/staging
+      - ./tmp/temp:/tmp/temp
     networks:
       - ecommerce-stream-network
     environment:
       - |
         FLINK_PROPERTIES=
-        jobmanager.rpc.address: jobmanager        
-
+        jobmanager.rpc.address: flink-jobmanager
+  
   flink-taskmanager:
-    image: flink:1.20.0-java11
+    image: flink:1.19.1-scala_2.12
     container_name: flink-taskmanager
     depends_on:
       - flink-jobmanager
     networks:
       - ecommerce-stream-network
+    volumes:
+      - ./tmp/staging:/tmp/staging
+      - ./tmp/temp:/tmp/temp
     command: taskmanager
     scale: 1
     environment:
       - |
         FLINK_PROPERTIES=
-        jobmanager.rpc.address: jobmanager
+        jobmanager.rpc.address: flink-jobmanager
         taskmanager.numberOfTaskSlots: 2
 
+  beam-worker-pool:
+    image: apache/beam_python3.12_sdk:2.61.0
+    container_name: beam-worker-pool
+    ports:
+      - '50000:50000'
+    networks:
+      - ecommerce-stream-network
+    volumes:
+      - ./tmp/staging:/tmp/staging
+      - ./tmp/temp:/tmp/temp
+    command: ['--worker_pool']
+  
+  beam-job-server:
+    image: apache/beam_flink1.19_job_server:2.61.0
+    container_name: beam-job-server
+    ports:
+      - '8099:8099'
+      - '8098:8098'
+      - '8097:8097'
+    networks:
+      - ecommerce-stream-network
+    command: ['--flink-master=flink-jobmanager:8081']
+  
+  python_client:
+    build: .
+    container_name: python_client
+    networks:
+      - ecommerce-stream-network
+    volumes:
+      -/src:/src
 
 networks:
   ecommerce-stream-network:

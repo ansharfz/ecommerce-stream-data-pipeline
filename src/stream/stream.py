@@ -40,7 +40,7 @@ def stream_data():
     avro_serializer = AvroSerializer(schema_registry_client, schema_str)
 
     TOPIC = 'event_data'
-    n_data = 2
+    n_data = 15
     with open('data/events.csv', 'r', encoding='utf-8') as f:
         reader = csv.reader(f)
         fieldnames = next(reader)
@@ -50,7 +50,10 @@ def stream_data():
             data['event_time'] = to_miliseconds(data['event_time'])
             producer.produce(topic=TOPIC,
                              key=string_serializer(str(uuid4())),
-                             value=avro_serializer(data, SerializationContext(TOPIC, MessageField.VALUE)))
+                             value=avro_serializer(
+                                data, SerializationContext(TOPIC, MessageField.VALUE)
+                                )
+                            )
             producer.flush()
 
 if __name__ == '__main__':
