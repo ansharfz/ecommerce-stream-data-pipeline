@@ -39,7 +39,7 @@ def stream_data():
 
     avro_serializer = AvroSerializer(schema_registry_client, schema_str)
 
-    TOPIC = 'event_data'
+    TOPIC = 'cart_events'
     n_data = 20
     with open('data/events.csv', 'r', encoding='utf-8') as f:
         reader = csv.reader(f)

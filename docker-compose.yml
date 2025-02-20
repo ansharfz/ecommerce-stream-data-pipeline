@@ -1,4 +1,5 @@
 services:
+  
   kafka-cluster-1:
     image: confluentinc/cp-kafka:7.7.1
     container_name: kafka-cluster-1
@@ -86,7 +87,8 @@ services:
       SCHEMA_REGISTRY_LISTENERS: 'http://0.0.0.0:8081'
 
   flink-jobmanager:
-    image: flink:1.19.1-scala_2.12-java11
+    build: ./containers/flink-jobmanager
+    image: flink-jobmanager:1.0
     container_name: flink-jobmanager
     ports:
       - '8081:8081'
@@ -94,6 +96,9 @@ services:
     command: jobmanager
     networks:
       - ecommerce-stream-network
+    volumes:
+      - ./conf/config.yaml:/opt/flink/conf/config.yaml
+      - ./src:/src
     environment:
       - |
         FLINK_PROPERTIES=
@@ -101,8 +106,7 @@ services:
     
   
   flink-taskmanager:
-    build: ./containers/flink-taskmanager
-    image: flink-taskmanager:1.0
+    image: flink:1.19.1-scala_2.12-java11
     container_name: flink-taskmanager
     command: taskmanager
     depends_on:
@@ -112,15 +116,36 @@ services:
     scale: 1
     volumes:
       - ./conf/config.yaml:/opt/flink/conf/config.yaml
-      - ./src:/src
-      - ./schema:/schema
     environment:
       - |
         FLINK_PROPERTIES=
         jobmanager.rpc.address: flink-jobmanager
         taskmanager.numberOfTaskSlots: 2
-  
+  postgres-db:
+    image: postgres:17.3-alpine3.21
+    container_name: postgres-db
+    restart: always
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: EventsDatabase
+    volumes:
+      - postgres-volume:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "user"]
+      interval: 10s
+      retries: 5
+      start_period: 5s
+    networks:
+      - ecommerce-stream-network
+
 networks:
   ecommerce-stream-network:
     name: ecommerce-stream-network
     driver: bridge
+
+volumes:
+  postgres-volume:
+    name: postgres-volume
