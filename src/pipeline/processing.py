@@ -23,14 +23,14 @@ TOPIC = 'cart_events'
 source = f"""
     CREATE TABLE cart_events_stream (
     id STRING,
-    event_time INTEGER,
+    event_time BIGINT,
     event_type STRING,
     product_id STRING,
     category_id STRING,
     category_code STRING,
     brand STRING,
     price FLOAT,
-    user_id FLOAT,
+    user_id STRING,
     user_session STRING
 
 ) WITH (
@@ -39,31 +39,32 @@ source = f"""
     'topic' = '{TOPIC}',
     'properties.bootstrap.servers' = 'kafka-cluster-1:9092',
     'properties.group.id' = 'group1',
-    
+    'scan.startup.mode' = 'earliest-offset',
+
     'key.format' = 'raw',
     'key.fields' = 'id',
     
     'value.format' = 'avro-confluent',
-    'value.avro-confluent.url' = 'http://schema-registry:8881'
+    'value.avro-confluent.url' = 'http://schema-registry:8081'
 );
     """
 
 sink = """
 CREATE TABLE cart_events (
     id STRING,
-    event_time INTEGER,
+    event_time BIGINT,
     event_type STRING,
     product_id STRING,
     category_id STRING,
     category_code STRING,
     brand STRING,
     price FLOAT,
-    user_id FLOAT,
+    user_id STRING,
     user_session STRING
 
 ) WITH (
    'connector' = 'jdbc',
-   'url' = 'jdbc:postgresql://postgres-db:5432/events_db',
+   'url' = 'jdbc:postgresql://postgres-db:5432/EventsDatabase',
    'username' = 'user',
    'password' = 'password',
    'table-name' = 'cart_events'

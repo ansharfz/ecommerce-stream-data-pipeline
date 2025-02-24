@@ -12,7 +12,7 @@ services:
       KAFKA_CONTROLLER_LISTENER_NAMES: 'CONTROLLER'
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: 'CONTROLLER:PLAINTEXT, INTERNAL:PLAINTEXT, EXTERNAL:PLAINTEXT'
       KAFKA_LISTENERS: 'INTERNAL://kafka-cluster-1:29092,CONTROLLER://kafka-cluster-1:29093,EXTERNAL://0.0.0.0:9092'
-      KAFKA_ADVERTISED_LISTENERS: 'INTERNAL://kafka-cluster-1:29092, EXTERNAL://localhost:9092'
+      KAFKA_ADVERTISED_LISTENERS: 'INTERNAL://kafka-cluster-1:29092, EXTERNAL://kafka-cluster-1:9092'
       KAFKA_INTER_BROKER_LISTENER_NAME: 'INTERNAL'
       KAFKA_CONTROLLER_QUORUM_VOTERS: '1@kafka-cluster-1:29093, 2@kafka-cluster-2:29093, 3@kafka-cluster-3:29093'
       KAFKA_PROCESS_ROLES: 'broker, controller'
@@ -34,9 +34,9 @@ services:
     environment:
       KAFKA_NODE_ID: 2
       KAFKA_CONTROLLER_LISTENER_NAMES: 'CONTROLLER'
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: 'CONTROLLER:PLAINTEXT, INTERNAL:PLAINTEXT, EXTERNAL:PLAINTEXT'
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: 'CONTROLLER:PLAINTEXT, INTERNAL:PLAINTEXT, EXTERNAL:PLAINTEXT,DOCKER:PLAINTEXT'
       KAFKA_LISTENERS: 'INTERNAL://kafka-cluster-2:29092,CONTROLLER://kafka-cluster-2:29093,EXTERNAL://0.0.0.0:9093'
-      KAFKA_ADVERTISED_LISTENERS: 'INTERNAL://kafka-cluster-2:29092, EXTERNAL://localhost:9093'
+      KAFKA_ADVERTISED_LISTENERS: 'INTERNAL://kafka-cluster-2:29092, EXTERNAL://kafka-cluster-2:9093'
       KAFKA_INTER_BROKER_LISTENER_NAME: 'INTERNAL'
       KAFKA_CONTROLLER_QUORUM_VOTERS: '1@kafka-cluster-1:29093, 2@kafka-cluster-2:29093, 3@kafka-cluster-3:29093'
       KAFKA_PROCESS_ROLES: 'broker, controller'
@@ -57,9 +57,9 @@ services:
     environment:
       KAFKA_NODE_ID: 3
       KAFKA_CONTROLLER_LISTENER_NAMES: 'CONTROLLER'
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: 'CONTROLLER:PLAINTEXT, INTERNAL:PLAINTEXT, EXTERNAL:PLAINTEXT'
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: 'CONTROLLER:PLAINTEXT, INTERNAL:PLAINTEXT, EXTERNAL:PLAINTEXT, DOCKER:PLAINTEXT'
       KAFKA_LISTENERS: 'INTERNAL://kafka-cluster-3:29092,CONTROLLER://kafka-cluster-3:29093,EXTERNAL://0.0.0.0:9094'
-      KAFKA_ADVERTISED_LISTENERS: 'INTERNAL://kafka-cluster-3:29092, EXTERNAL://localhost:9094'
+      KAFKA_ADVERTISED_LISTENERS: 'INTERNAL://kafka-cluster-3:29092, EXTERNAL://kafka-cluster-3:9094'
       KAFKA_INTER_BROKER_LISTENER_NAME: 'INTERNAL'
       KAFKA_CONTROLLER_QUORUM_VOTERS: '1@kafka-cluster-1:29093, 2@kafka-cluster-2:29093, 3@kafka-cluster-3:29093'
       KAFKA_PROCESS_ROLES: 'broker, controller'
@@ -98,7 +98,9 @@ services:
       - ecommerce-stream-network
     volumes:
       - ./conf/config.yaml:/opt/flink/conf/config.yaml
+      - ./data:/data
       - ./src:/src
+      - ./schema:/schema
     environment:
       - |
         FLINK_PROPERTIES=
@@ -140,6 +142,20 @@ services:
       start_period: 5s
     networks:
       - ecommerce-stream-network
+  pgadmin:
+    image: dpage/pgadmin4:9.0.0
+    container_name: pgadmin4
+    restart: always
+    ports:
+      - "8884:80"
+    environment:
+      PGADMIN_DEFAULT_EMAIL: user-name@domain-name.com
+      PGADMIN_DEFAULT_PASSWORD: password
+    volumes:
+      - pgadmin-data:/var/lib/pgadmin
+    networks:
+      - ecommerce-stream-network
+
 
 networks:
   ecommerce-stream-network:
@@ -149,3 +165,5 @@ networks:
 volumes:
   postgres-volume:
     name: postgres-volume
+  pgadmin-data:
+    name: pgadmin-data
