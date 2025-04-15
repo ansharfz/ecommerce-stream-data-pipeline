@@ -20,10 +20,10 @@ table_env.get_config().set(
 
 TOPIC = 'cart_events'
 
-source = f"""
+SOURCE = f"""
     CREATE TABLE cart_events_stream (
     id STRING,
-    event_time BIGINT,
+    event_time STRING,
     event_type STRING,
     product_id STRING,
     category_id STRING,
@@ -45,14 +45,15 @@ source = f"""
     'key.fields' = 'id',
     
     'value.format' = 'avro-confluent',
+    'value.fields-include' = 'EXCEPT_KEY',
     'value.avro-confluent.url' = 'http://schema-registry:8081'
 );
-    """
+"""
 
-sink = """
+SINK = """
 CREATE TABLE cart_events (
     id STRING,
-    event_time BIGINT,
+    event_time TIMESTAMP,
     event_type STRING,
     product_id STRING,
     category_id STRING,
@@ -71,11 +72,29 @@ CREATE TABLE cart_events (
 );
 """
 
-insert = """
+INSERT = """
     INSERT INTO cart_events
-    SELECT * FROM cart_events_stream;
+    SELECT 
+        id,
+        TO_TIMESTAMP(SUBSTRING(event_time, 1, 19)),
+        event_type,
+        product_id,
+        category_id,
+        category_code,
+        brand,
+        price,
+        user_id,
+        user_session
+    FROM cart_events_stream
+    WHERE 
+        event_type IN ('view', 'cart', 'remove_from_cart', 'purchase')
+        AND product_id IS NOT NULL
+        AND user_id IS NOT NULL
+        AND TO_TIMESTAMP(SUBSTRING(event_time, 1, 19)) <= CAST(NOW() AS TIMESTAMP)
+        AND (event_type <> 'purchase' OR price > 0);
 """
 
-table_env.execute_sql(source)
-table_env.execute_sql(sink)
-table_env.execute_sql(insert)
+
+table_env.execute_sql(SOURCE)
+table_env.execute_sql(SINK)
+table_env.execute_sql(INSERT)

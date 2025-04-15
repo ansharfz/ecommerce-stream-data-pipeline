@@ -1,5 +1,5 @@
 import csv
-from datetime import datetime
+import time
 from uuid import uuid4
 
 from confluent_kafka import Producer
@@ -11,12 +11,6 @@ from confluent_kafka.serialization import (
     StringSerializer,
 )
 
-
-def to_miliseconds(date_str):
-    date_format = "%Y-%m-%d %H:%M:%S %Z"
-    dt = datetime.strptime(date_str, date_format)
-    miliseconds = int(dt.timestamp() * 1000)
-    return miliseconds
 
 def stream_data():
 
@@ -40,14 +34,13 @@ def stream_data():
     avro_serializer = AvroSerializer(schema_registry_client, schema_str)
 
     TOPIC = 'cart_events'
-    n_data = 20
     with open('/data/events.csv', 'r', encoding='utf-8') as f:
         reader = csv.reader(f)
         fieldnames = next(reader)
         reader = csv.DictReader(f, fieldnames)
-        for n in range(n_data):
-            data = next(reader)
-            data['event_time'] = to_miliseconds(data['event_time'])
+        data = next(reader)
+        while data:
+            data['event_time'] = str(data['event_time'])
             producer.produce(topic=TOPIC,
                              key=string_serializer(str(uuid4())),
                              value=avro_serializer(
@@ -55,6 +48,7 @@ def stream_data():
                                 )
                             )
             producer.flush()
+            data = next(reader)
 
 if __name__ == '__main__':
     stream_data()
